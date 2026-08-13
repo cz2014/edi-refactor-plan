@@ -39,6 +39,15 @@ same commit, so the skill never lags the code. Ownership: cz.
   separate directories. Established layouts to learn from: QE's `common/`
   (shared infrastructure) plus per-package dirs (`EPW/`, ...), and the GW
   codes' split into mean-field, kernel, and post-processing layers.
+- [rjguo 2026-08-13] Two more development lines need first-class homes in
+  the layout: (i) transport — evaluation of transport properties
+  (conductivity, mobility, and related tensors) from the scattering
+  solutions; this is a physics layer of its own, not generic
+  post-processing; (ii) wannier — wannierization and the groundwork for
+  Wannier interpolation (projections/overlaps, gauge/rotation matrices,
+  real-space Hamiltonian construction, validity checks of the resulting
+  frame), which several consumers share and which today lives in scattered
+  scripts.
 
 ### Design
 
@@ -55,6 +64,17 @@ directory per development line.
 - `tmatrix/` — T-matrix solvers and band-tail treatments, consuming `edmat`
   output only through the `common/` formats. Ownership: rjguo (method core,
   to confirm); cz (tail folding).
+- `transport/` — transport-property evaluation on top of the solver
+  outputs: scattering rates assembled into conductivity, mobility, and
+  related tensors; consumes solver output only through `common/` formats.
+  Boundary with `post/` (which keeps plotting and generic analysis) to be
+  settled when this thread is agreed. Ownership: to discuss.
+- `wannier/` — wannierization and Wannier-interpolation groundwork:
+  projection/overlap preparation, gauge/rotation matrices, real-space
+  Hamiltonian construction, and validity checks of the resulting frame
+  (e.g. the wannierization identity against the band Hamiltonian). Its
+  products are read by solvers and `transport/` only through `common/`
+  formats. Ownership: to discuss.
 - `post/` — python post-processing: scattering rates, transport, plotting;
   reads only the documented formats. Ownership: cz.
 - `skill/` — agent skill, see T1. Ownership: cz.

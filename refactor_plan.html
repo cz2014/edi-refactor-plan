@@ -135,6 +135,15 @@ Ownership: cz.</p>
       (<code>EPW/</code>, ...), and the GW codes' split into mean-field,
       kernel, and post-processing layers.
       <span class="tag">cz 2026-08-13</span></li>
+  <li>Two more development lines need first-class homes in the layout:
+      (i) transport &mdash; evaluation of transport properties (conductivity,
+      mobility, and related tensors) from the scattering solutions; this is a
+      physics layer of its own, not generic post-processing; (ii) wannier
+      &mdash; wannierization and the groundwork for Wannier interpolation
+      (projections/overlaps, gauge/rotation matrices, real-space Hamiltonian
+      construction, validity checks of the resulting frame), which several
+      consumers share and which today lives in scattered scripts.
+      <span class="tag">rjguo 2026-08-13</span></li>
 </ul>
 
 <h3>Design</h3>
@@ -154,6 +163,19 @@ directory per development line.</p>
       treatments, consuming <code>edmat</code> output only through the
       <code>common/</code> formats. Ownership: rjguo (method core, to
       confirm); cz (tail folding).</li>
+  <li><code>transport/</code> &mdash; transport-property evaluation on top
+      of the solver outputs: scattering rates assembled into conductivity,
+      mobility, and related tensors; consumes solver output only through
+      <code>common/</code> formats. Boundary with <code>post/</code> (which
+      keeps plotting and generic analysis) to be settled when this thread is
+      agreed. Ownership: to discuss.</li>
+  <li><code>wannier/</code> &mdash; wannierization and Wannier-interpolation
+      groundwork: projection/overlap preparation, gauge/rotation matrices,
+      real-space Hamiltonian construction, and validity checks of the
+      resulting frame (e.g. the wannierization identity against the band
+      Hamiltonian). Its products are read by solvers and
+      <code>transport/</code> only through <code>common/</code> formats.
+      Ownership: to discuss.</li>
   <li><code>post/</code> &mdash; python post-processing: scattering rates,
       transport, plotting; reads only the documented formats.
       Ownership: cz.</li>
