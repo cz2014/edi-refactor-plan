@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EDI codebase refactor plan</title>
+<style>
+  body {
+    max-width: 800px;
+    margin: 2.5rem auto;
+    padding: 0 1.25rem;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                 Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    color: #2c3033;
+    background: #ffffff;
+  }
+  h1 {
+    font-size: 1.6rem;
+    margin-bottom: 0.3rem;
+    color: #1f2325;
+  }
+  h2 {
+    font-size: 1.15rem;
+    margin-top: 2rem;
+    padding-bottom: 0.25rem;
+    border-bottom: 1px solid #e2e5e8;
+    color: #1f2325;
+  }
+  p.note {
+    font-size: 0.85rem;
+    color: #7a8288;
+    margin-top: 0;
+  }
+  p.status {
+    color: #5a6167;
+    background: #f5f6f7;
+    border-left: 3px solid #c8ced3;
+    padding: 0.6rem 0.8rem;
+  }
+  ul { padding-left: 1.2rem; }
+  li { margin-bottom: 0.6rem; }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.88em;
+    background: #f2f3f5;
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+  }
+  span.tag {
+    display: inline-block;
+    font-size: 0.72rem;
+    color: #6b7278;
+    background: #eef0f2;
+    border: 1px solid #dfe3e6;
+    border-radius: 3px;
+    padding: 0.05rem 0.35rem;
+    margin-left: 0.3rem;
+    white-space: nowrap;
+  }
+  p.placeholder { color: #7a8288; }
+</style>
+</head>
+<body>
+
+<h1>EDI codebase refactor plan</h1>
+<p class="note">Twin of refactor_plan.md; regenerate on every md edit (see README.md).</p>
+
+<p class="status">Status: DRAFT — collecting requirements from both sides.
+See README.md for update rules (public repo: design discussion only, no data
+or results).</p>
+
+<h2>1. Goals and constraints</h2>
+<ul>
+  <li>Modular separation: the core matrix-element builder (<code>ed_coarse</code>),
+      the scattering/T-matrix solvers, and transport post-processing should be
+      separable layers with clean interfaces, so that new physics (e.g. tail
+      folding) plugs in without touching the core.
+      <span class="tag">cz 2026-08-12</span></li>
+  <li>Data contract between the python post-processing layer (<code>post/</code>)
+      and the Fortran core must be defined: binary formats (e.g. <code>edmat</code>)
+      carry versioned headers, and readers live in one shared module rather than
+      being duplicated per script.
+      <span class="tag">cz 2026-08-12</span></li>
+  <li>Memory scaling is a first-class constraint: dense storage grows steeply
+      with k-mesh size and becomes impractical at production meshes.
+      Block/sector/low-rank storage should be a design assumption of the
+      refactor, not a patch applied afterwards.
+      <span class="tag">cz 2026-08-12</span></li>
+  <li>Performance-critical paths (coarse mode) already have optimized variants.
+      The refactor should merge them in as the default rather than keeping
+      parallel code paths.
+      <span class="tag">cz 2026-08-12</span></li>
+  <li>Constraint: reproducibility of current results must be preserved.
+      A regression suite gates every structural change.
+      <span class="tag">cz 2026-08-12</span></li>
+</ul>
+
+<h2>2. Architecture design</h2>
+<p class="placeholder">To be designed after requirements from both sides are in.
+The candidate decomposition below is a starting point, not a decision.</p>
+<ul>
+  <li><code>io/formats</code>: file readers/writers, versioned binary headers, one
+      definition of each on-disk format shared by Fortran and python.
+      <span class="tag">cz 2026-08-12</span></li>
+  <li>matrix-element core: potential/defect setup and the <code>ed_coarse</code>
+      matrix-element build, with no knowledge of which solver consumes it.
+      <span class="tag">cz 2026-08-12</span></li>
+  <li>solvers: Born, T-matrix, and tail/folding treatments behind a common solver
+      interface over the core's matrix elements.
+      <span class="tag">cz 2026-08-12</span></li>
+  <li>post-processing/transport: scattering rates, mobility/conductivity, and
+      plotting, driven entirely through the documented data contract.
+      <span class="tag">cz 2026-08-12</span></li>
+</ul>
+
+<h2>3. Open questions</h2>
+<ul>
+  <li>Provenance of the reference matrix-element tables used for cross-code
+      comparison: which code generated them, and are nonlocal pseudopotential
+      terms included in DeltaV?
+      <span class="tag">cz 2026-08-12</span></li>
+  <li>What is the target build system, and what is the minimum QE version for the
+      refactored code?
+      <span class="tag">cz 2026-08-12</span></li>
+</ul>
+
+<h2>4. Requirements from rjguo</h2>
+<p class="placeholder">(to be filled by rjguo)</p>
+
+</body>
+</html>
