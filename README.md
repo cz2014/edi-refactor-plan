@@ -42,3 +42,4 @@ The code itself lives in the private development repo.
    development lines do not collide.
 6. Keep the document current-state: once a thread is AGREED, prune its
    discussion down to the entries that explain the decision.
+7. The plan file is written in English.
