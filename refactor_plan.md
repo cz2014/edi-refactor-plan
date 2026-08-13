@@ -1,51 +1,64 @@
 # EDI codebase refactor plan
 
-Status: DRAFT — collecting requirements from both sides. See README.md for
-update rules (public repo: design discussion only, no data or results).
+Update rules and procedure: see README.md.
 
-## 1. Goals and constraints
+## Thread index
 
-- Modular separation: the core matrix-element builder (`ed_coarse`), the
-  scattering/T-matrix solvers, and transport post-processing should be
-  separable layers with clean interfaces, so that new physics (e.g. tail
-  folding) plugs in without touching the core. [cz 2026-08-12]
-- Data contract between the python post-processing layer (`post/`) and the
-  Fortran core must be defined: binary formats (e.g. `edmat`) carry versioned
-  headers, and readers live in one shared module rather than being duplicated
-  per script. [cz 2026-08-12]
-- Memory scaling is a first-class constraint: dense storage grows steeply with
-  k-mesh size and becomes impractical at production meshes. Block/sector/
-  low-rank storage should be a design assumption of the refactor, not a patch
-  applied afterwards. [cz 2026-08-12]
-- Performance-critical paths (coarse mode) already have optimized variants. The
-  refactor should merge them in as the default rather than keeping parallel code
-  paths. [cz 2026-08-12]
-- Constraint: reproducibility of current results must be preserved. A
-  regression suite gates every structural change. [cz 2026-08-12]
+| Thread | Topic                | Status   |
+|--------|----------------------|----------|
+| T1     | Agent skill          | PROPOSED |
+| T2     | Module decomposition | PROPOSED |
 
-## 2. Architecture design
+Statuses: OPEN (discussing) -> PROPOSED (design drafted, awaiting the other
+side) -> AGREED (binding). Reopening an AGREED thread sets it back to OPEN.
 
-To be designed after requirements from both sides are in. The candidate
-decomposition below is a starting point, not a decision.
+## T1. Agent skill — PROPOSED
 
-- `io/formats`: file readers/writers, versioned binary headers, one definition
-  of each on-disk format shared by Fortran and python. [cz 2026-08-12]
-- matrix-element core: potential/defect setup and the `ed_coarse` matrix-element
-  build, with no knowledge of which solver consumes it. [cz 2026-08-12]
-- solvers: Born, T-matrix, and tail/folding treatments behind a common solver
-  interface over the core's matrix elements. [cz 2026-08-12]
-- post-processing/transport: scattering rates, mobility/conductivity, and
-  plotting, driven entirely through the documented data contract.
-  [cz 2026-08-12]
+### Requirements and discussion
 
-## 3. Open questions
+- [cz 2026-08-13] We should maintain an agent skill for this code, so that a
+  Claude Code session can build, run, and post-process it without
+  rediscovering the workflow each time.
 
-- Provenance of the reference matrix-element tables used for cross-code
-  comparison: which code generated them, and are nonlocal pseudopotential
-  terms included in DeltaV? [cz 2026-08-12]
-- What is the target build system, and what is the minimum QE version for the
-  refactored code? [cz 2026-08-12]
+### Design
 
-## 4. Requirements from rjguo
+Keep a `skill/` directory at the top level of the code repo, holding the
+agent skill: a `SKILL.md` entry point plus any helper scripts or input
+templates it needs. The skill documents how to build the code, prepare
+inputs, submit runs, and read the outputs. Whoever changes a user-facing
+interface (input format, output format, build step) updates `skill/` in the
+same commit, so the skill never lags the code. Ownership: cz.
 
-(to be filled by rjguo)
+## T2. Module decomposition — PROPOSED
+
+### Requirements and discussion
+
+- [cz 2026-08-13] We need to decompose the code into modules so that
+  development lines that would otherwise conflict — e.g. the first-order
+  (Born) EDI matrix-element computation and the T-matrix work — live in
+  separate directories. Established layouts to learn from: QE's `common/`
+  (shared infrastructure) plus per-package dirs (`EPW/`, ...), and the GW
+  codes' split into mean-field, kernel, and post-processing layers.
+
+### Design
+
+Proposed layout, QE-style: one shared-infrastructure directory, one
+directory per development line.
+
+- `common/` — shared infrastructure: wavefunction and potential readers,
+  k-mesh and symmetry utilities, parallel setup, and the on-disk binary
+  formats (versioned headers, one definition shared by all layers).
+  Ownership: shared; interface changes are agreed in a thread here first.
+- `edmat/` — first-order (Born) EDI matrix-element computation: defect
+  potential setup and the matrix-element build, with no knowledge of which
+  solver consumes the output. Ownership: rjguo (to confirm).
+- `tmatrix/` — T-matrix solvers and band-tail treatments, consuming `edmat`
+  output only through the `common/` formats. Ownership: rjguo (method core,
+  to confirm); cz (tail folding).
+- `post/` — python post-processing: scattering rates, transport, plotting;
+  reads only the documented formats. Ownership: cz.
+- `skill/` — agent skill, see T1. Ownership: cz.
+
+Two rules the layout enforces: a commit touches one line's directory plus at
+most `common/`; anything needed by two lines moves into `common/` rather
+than being duplicated.
