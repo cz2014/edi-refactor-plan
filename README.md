@@ -37,9 +37,6 @@ The code itself lives in the private development repo.
    section and set the thread to PROPOSED. Only the OTHER side may set it to
    AGREED. An AGREED design is binding for implementation in the private
    repo; to change it, reopen the thread with a new discussion entry.
-5. When a design partitions the code into modules or directories, it also
-   records ownership — which side implements which part — so parallel
-   development lines do not collide.
-6. Keep the document current-state: once a thread is AGREED, prune its
+5. Keep the document current-state: once a thread is AGREED, prune its
    discussion down to the entries that explain the decision.
-7. The plan file is written in English.
+6. The plan file is written in English.

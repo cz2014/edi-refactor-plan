@@ -4,10 +4,11 @@ Update rules and procedure: see README.md.
 
 ## Thread index
 
-| Thread | Topic                | Status   |
-|--------|----------------------|----------|
-| T1     | Agent skill          | PROPOSED |
-| T2     | Module decomposition | PROPOSED |
+| Thread | Topic                      | Status   |
+|--------|----------------------------|----------|
+| T1     | Agent skill                | PROPOSED |
+| T2     | Module decomposition       | PROPOSED |
+| T3     | One language, one codebase | PROPOSED |
 
 Statuses: OPEN (discussing) -> PROPOSED (design drafted, awaiting the other
 side) -> AGREED (binding). Reopening an AGREED thread sets it back to OPEN.
@@ -27,7 +28,7 @@ agent skill: a `SKILL.md` entry point plus any helper scripts or input
 templates it needs. The skill documents how to build the code, prepare
 inputs, submit runs, and read the outputs. Whoever changes a user-facing
 interface (input format, output format, build step) updates `skill/` in the
-same commit, so the skill never lags the code. Ownership: cz.
+same commit, so the skill never lags the code.
 
 ## T2. Module decomposition — PROPOSED
 
@@ -57,28 +58,55 @@ directory per development line.
 - `common/` — shared infrastructure: wavefunction and potential readers,
   k-mesh and symmetry utilities, parallel setup, and the on-disk binary
   formats (versioned headers, one definition shared by all layers).
-  Ownership: shared; interface changes are agreed in a thread here first.
+  Interface changes are agreed in a thread here first.
 - `edmat/` — first-order (Born) EDI matrix-element computation: defect
   potential setup and the matrix-element build, with no knowledge of which
-  solver consumes the output. Ownership: rjguo (to confirm).
+  solver consumes the output.
 - `tmatrix/` — T-matrix solvers and band-tail treatments, consuming `edmat`
-  output only through the `common/` formats. Ownership: rjguo (method core,
-  to confirm); cz (tail folding).
+  output only through the `common/` formats.
 - `transport/` — transport-property evaluation on top of the solver
   outputs: scattering rates assembled into conductivity, mobility, and
-  related tensors; consumes solver output only through `common/` formats.
-  Boundary with `post/` (which keeps plotting and generic analysis) to be
-  settled when this thread is agreed. Ownership: to discuss.
+  related tensors, including the iterative (IBTE) solve; consumes solver
+  output only through `common/` formats. Fortran, per T3; the python
+  mobility scripts now in `post/` become referees for it.
 - `wannier/` — wannierization and Wannier-interpolation groundwork:
   projection/overlap preparation, gauge/rotation matrices, real-space
   Hamiltonian construction, and validity checks of the resulting frame
   (e.g. the wannierization identity against the band Hamiltonian). Its
   products are read by solvers and `transport/` only through `common/`
-  formats. Ownership: to discuss.
-- `post/` — python post-processing: scattering rates, transport, plotting;
-  reads only the documented formats. Ownership: cz.
-- `skill/` — agent skill, see T1. Ownership: cz.
+  formats.
+- `post/` — python post-processing: plotting and generic analysis; reads
+  only the documented formats. Transport-property evaluation is not here;
+  it lives in `transport/`.
+- `skill/` — agent skill, see T1.
 
 Two rules the layout enforces: a commit touches one line's directory plus at
 most `common/`; anything needed by two lines moves into `common/` rather
 than being duplicated.
+
+## T3. One language, one codebase — PROPOSED
+
+### Requirements and discussion
+
+- [cz 2026-08-16] The refactor should also fix how many languages and how
+  many versions the project carries. Every additional language adds a build
+  and configuration surface that every user and every developer then has to
+  set up. Every parallel version splits both the user base and the
+  development effort. A counter-example to avoid is DeepH, where each
+  author maintains a separate version of the code: it is hard to use and
+  hard to develop against, because no single version is the one that gets
+  fixed. We want the opposite — one implementation language for the
+  production path, and one line of development that everyone commits to.
+
+### Design
+
+- The production path is Fortran, built inside the QE/EDI build system. A
+  physics capability has exactly one implementation, in Fortran; it is not
+  maintained in parallel in a second language.
+- Python is confined to `post/`: plotting, generic analysis, and referee
+  scripts that validate the Fortran path. A referee script may duplicate a
+  Fortran calculation, but it is never the production route, and it is not
+  developed further once the Fortran path passes validation.
+- One line of development: work lands on the shared repository's main line.
+  Personal or per-author forks are for preparing changes, not for carrying
+  features long-term.
